@@ -18,10 +18,18 @@
   </div>
 
   <div class="ui-buttons">
+    <!-- 📍 Location -->
     <a id="location-btn" href="https://www.google.com/maps/place/50,+VP+St,+Vannarpet,+Coonoor,+Tamil+Nadu+643101" target="_blank" rel="noopener noreferrer">
       <img src="location_icon.png" alt="Location" />
     </a>
+
+    <!-- ℹ️ Info -->
     <button id="info-btn" onclick="toggleInfoModal()">ℹ️</button>
+
+    <!-- 📸 Snapshot -->
+    <button id="snapshot-btn">
+      <img src="camera_icon.png" alt="Snapshot" />
+    </button>
   </div>
   
   <div id="jewelry-mode" class="button-group">
@@ -38,6 +46,7 @@
   
   <div id="jewelry-options" class="options-group" style="display: none;"></div>
   
+  <!-- ℹ️ Info Modal -->
   <dialog id="info-modal">
     <h3>How to Use the Try-On App</h3>
     <div class="info-content">
@@ -51,6 +60,17 @@
       <button class="close-btn" onclick="toggleInfoModal()">Got it!</button>
     </div>
   </dialog>
+
+  <!-- 📸 Snapshot Modal -->
+  <div id="snapshot-modal">
+    <img id="snapshot-preview" alt="Snapshot Preview" />
+    <div class="snapshot-buttons">
+      <button id="download-btn">Download</button>
+      <button id="share-whatsapp-btn">WhatsApp</button>
+      <button id="share-instagram-btn">Instagram</button>
+      <button onclick="closeSnapshotModal()">Close</button>
+    </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.min.js"></script>
