@@ -40,14 +40,14 @@ const driveFolders = {
   ring: "1fV6xqa4W0t693TyS2P71_JRxUoU5i3__",
 };
 
-// Fetch image links from Google Drive
+// Fetch image links from Google Drive (use uc?id instead of thumbnail)
 async function fetchDriveImages(folderId) {
   const url = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents&key=${API_KEY}&fields=files(id,name,mimeType)`;
   const res = await fetch(url);
   const data = await res.json();
   if (!data.files) return [];
   return data.files.filter(f => f.mimeType.includes("image/")).map(f => {
-    const link = `https://drive.google.com/thumbnail?id=${f.id}&sz=w1000`;
+    const link = `https://drive.google.com/uc?id=${f.id}`;
     return { id: f.id, name: f.name, src: link };
   });
 }
@@ -56,7 +56,7 @@ async function fetchDriveImages(folderId) {
 async function loadImage(src) {
   return new Promise((resolve) => {
     const img = new Image();
-    img.crossOrigin = "anonymous"; // 🔑 Fix CORS before src
+    img.crossOrigin = "anonymous"; 
     img.onload = () => resolve(img);
     img.onerror = () => resolve(null);
     img.src = src;
@@ -163,7 +163,6 @@ async function startCamera(facingMode = 'user') {
 
 document.addEventListener('DOMContentLoaded', async () => {
   startCamera('user');
-  // Auto-load default jewelry
   await insertJewelryOptions("gold_earrings", "jewelry-options");
 });
 
@@ -194,7 +193,7 @@ shareWhatsappBtn.addEventListener('click', () => {
 });
 
 shareInstagramBtn.addEventListener('click', () => {
-  alert("Instagram direct image upload via web is limited. You can download the image and upload it on Instagram.");
+  alert("Instagram direct image upload via web is limited. Please download the image and upload it on Instagram.");
 });
 
 function closeSnapshotModal() {
@@ -208,15 +207,28 @@ function smoothPoint(prev, current, factor = 0.4) {
 }
 
 function drawJewelry(faceLandmarks, handLandmarks, ctx) {
-  const earringScale = 0.15, necklaceScale = 0.4, braceletScale = 0.3, ringScale = 0.15;
+  const earringScale = 0.25, necklaceScale = 0.5, braceletScale = 0.4, ringScale = 0.25;
   const angleOffset = Math.PI / 2;
+
+  // --- Debug Face Dots ---
   if (faceLandmarks) {
-    const leftEar = { x: faceLandmarks[132].x * canvasElement.width - 6, y: faceLandmarks[132].y * canvasElement.height - 16 };
-    const rightEar = { x: faceLandmarks[361].x * canvasElement.width + 6, y: faceLandmarks[361].y * canvasElement.height - 16 };
-    const neck = { x: faceLandmarks[152].x * canvasElement.width - 8, y: faceLandmarks[152].y * canvasElement.height + 10 };
+    ctx.fillStyle = "red";
+    [132, 361, 152].forEach(i => {
+      const x = faceLandmarks[i].x * canvasElement.width;
+      const y = faceLandmarks[i].y * canvasElement.height;
+      ctx.beginPath();
+      ctx.arc(x, y, 5, 0, 2 * Math.PI);
+      ctx.fill();
+    });
+
+    const leftEar = { x: faceLandmarks[132].x * canvasElement.width, y: faceLandmarks[132].y * canvasElement.height };
+    const rightEar = { x: faceLandmarks[361].x * canvasElement.width, y: faceLandmarks[361].y * canvasElement.height };
+    const neck = { x: faceLandmarks[152].x * canvasElement.width, y: faceLandmarks[152].y * canvasElement.height };
+
     smoothedFacePoints.leftEar = smoothPoint(smoothedFacePoints.leftEar, leftEar);
     smoothedFacePoints.rightEar = smoothPoint(smoothedFacePoints.rightEar, rightEar);
     smoothedFacePoints.neck = smoothPoint(smoothedFacePoints.neck, neck);
+
     if (earringImg) {
       const w = earringImg.width * earringScale, h = earringImg.height * earringScale;
       ctx.drawImage(earringImg, smoothedFacePoints.leftEar.x - w / 2, smoothedFacePoints.leftEar.y, w, h);
@@ -227,11 +239,25 @@ function drawJewelry(faceLandmarks, handLandmarks, ctx) {
       ctx.drawImage(necklaceImg, smoothedFacePoints.neck.x - w / 2, smoothedFacePoints.neck.y, w, h);
     }
   }
+
+  // --- Debug Hand Dots ---
   if (handLandmarks) {
+    ctx.fillStyle = "blue";
+    handLandmarks.forEach(hand => {
+      hand.forEach(pt => {
+        const x = pt.x * canvasElement.width;
+        const y = pt.y * canvasElement.height;
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, 2 * Math.PI);
+        ctx.fill();
+      });
+    });
+
     handLandmarks.forEach((hand, idx) => {
       const wrist = { x: hand[0].x * canvasElement.width, y: hand[0].y * canvasElement.height };
       const middle = { x: hand[9].x * canvasElement.width, y: hand[9].y * canvasElement.height };
       const angle = Math.atan2(middle.y - wrist.y, middle.x - wrist.x);
+
       if (braceletImg) {
         const w = braceletImg.width * braceletScale, h = braceletImg.height * braceletScale;
         const key = `bracelet_${idx}`;
@@ -242,6 +268,7 @@ function drawJewelry(faceLandmarks, handLandmarks, ctx) {
         ctx.drawImage(braceletImg, -w / 2, -h / 2, w, h);
         ctx.restore();
       }
+
       if (ringImg) {
         const w = ringImg.width * ringScale, h = ringImg.height * ringScale;
         const ringBase = { x: hand[13].x * canvasElement.width, y: hand[13].y * canvasElement.height };
