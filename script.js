@@ -56,9 +56,9 @@ async function fetchDriveImages(folderId) {
 async function loadImage(src) {
   return new Promise((resolve) => {
     const img = new Image();
+    img.crossOrigin = "anonymous"; // 🔑 Fix CORS before src
     img.onload = () => resolve(img);
     img.onerror = () => resolve(null);
-    img.crossOrigin = "anonymous"; // important for snapshot export
     img.src = src;
   });
 }
@@ -141,28 +141,33 @@ faceMesh.onResults((results) => {
   drawJewelry(smoothedFaceLandmarks, smoothedHandLandmarks, canvasCtx);
 });
 
-// Start camera
-async function startCamera(facingMode) {
+// Start camera with fallback
+async function startCamera(facingMode = 'user') {
   if (camera) camera.stop();
-  camera = new Camera(videoElement, {
-    onFrame: async () => {
-      await faceMesh.send({ image: videoElement });
-      await hands.send({ image: videoElement });
-    },
-    width: 1280,
-    height: 720,
-    facingMode: facingMode
-  });
-  camera.start();
+  try {
+    camera = new Camera(videoElement, {
+      onFrame: async () => {
+        await faceMesh.send({ image: videoElement });
+        await hands.send({ image: videoElement });
+      },
+      width: 1280,
+      height: 720,
+      facingMode: facingMode
+    });
+    camera.start();
+  } catch (err) {
+    console.error("Camera failed, falling back to user mode", err);
+    if (facingMode !== "user") startCamera("user");
+  }
 }
 
-document.addEventListener('DOMContentLoaded', () => startCamera('user'));
-videoElement.addEventListener('loadedmetadata', () => {
-  canvasElement.width = videoElement.videoWidth;
-  canvasElement.height = videoElement.videoHeight;
+document.addEventListener('DOMContentLoaded', async () => {
+  startCamera('user');
+  // Auto-load default jewelry
+  await insertJewelryOptions("gold_earrings", "jewelry-options");
 });
 
-// ========== Snapshot Feature ==========
+// Snapshot Feature
 snapshotBtn.addEventListener('click', () => {
   const tempCanvas = document.createElement('canvas');
   tempCanvas.width = canvasElement.width;
@@ -203,7 +208,7 @@ function smoothPoint(prev, current, factor = 0.4) {
 }
 
 function drawJewelry(faceLandmarks, handLandmarks, ctx) {
-  const earringScale = 0.078, necklaceScale = 0.252, braceletScale = 0.28, ringScale = 0.1;
+  const earringScale = 0.15, necklaceScale = 0.4, braceletScale = 0.3, ringScale = 0.15;
   const angleOffset = Math.PI / 2;
   if (faceLandmarks) {
     const leftEar = { x: faceLandmarks[132].x * canvasElement.width - 6, y: faceLandmarks[132].y * canvasElement.height - 16 };
